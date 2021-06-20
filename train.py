@@ -40,7 +40,7 @@ def build_model(**kwargs):
             layers.MaxPool2D(pool_size=(2, 2)),
             layers.Dropout(rate=kwargs["dropout"]),
             layers.Flatten(),
-            layers.Dense(128, activation="relu"),
+            # layers.Dense(128, activation="relu"),
             layers.Dense(128, activation="relu"),
             layers.Dense(10, activation="softmax"),
         ]
@@ -90,7 +90,9 @@ if __name__ == "__main__":
         test_audio,
         train_specs,
         test_specs,
-    ) = train_test_split(labels, fnames, audio, spectrograms, train_size=0.8)
+    ) = train_test_split(
+        labels, fnames, audio, spectrograms, random_state=44, train_size=0.8
+    )
     model = build_model(**wandb.config)
     model.fit(
         train_specs,
