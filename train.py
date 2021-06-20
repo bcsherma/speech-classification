@@ -1,13 +1,12 @@
 import argparse
+import random
 
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sn
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics import confusion_matrix
 from tensorflow.keras import Sequential, layers, losses, optimizers
-from tensorflow.python.ops.gen_array_ops import const
 from wandb.keras import WandbCallback
 
 import wandb
@@ -29,7 +28,6 @@ def build_model(**kwargs):
     model = Sequential(
         [
             layers.Input(shape=SPECTROGRAM_SHAPE),
-            layers.BatchNormalization(),
             layers.Conv2D(8, 2, activation="relu"),
             layers.Conv2D(8, 2, activation="relu"),
             layers.MaxPool2D(pool_size=(2, 2)),
@@ -43,21 +41,15 @@ def build_model(**kwargs):
             layers.Dropout(rate=kwargs["dropout"]),
             layers.Flatten(),
             layers.Dense(128, activation="relu"),
-            layers.BatchNormalization(),
             layers.Dense(128, activation="relu"),
-            layers.BatchNormalization(),
             layers.Dense(10, activation="softmax"),
         ]
     )
     model.summary()
     if kwargs["optimizer"] == "rmsprop":
-        opt = optimizers.RMSprop(
-            learning_rate=kwargs["learning_rate"], momentum=kwargs["momentum"]
-        )
+        opt = optimizers.RMSprop(learning_rate=kwargs["learning_rate"])
     elif kwargs["optimizer"] == "adam":
-        opt = optimizers.Adam(
-            learning_rate=kwargs["learning_rate"], momentum=kwargs["momentum"]
-        )
+        opt = optimizers.Adam(learning_rate=kwargs["learning_rate"])
     model.compile(loss=losses.binary_crossentropy, metrics="accuracy", optimizer=opt)
     return model
 
@@ -65,7 +57,7 @@ def build_model(**kwargs):
 def make_confusion_matrix(predictions, true_values, labels):
     matrix = confusion_matrix(true_values, predictions)
     plt.figure(figsize=(12, 12))
-    plt.matshow(matrix)
+    plt.matshow(matrix, cmap=plt.cm.Blues)
     plt.colorbar()
     plt.ylabel("True value")
     plt.xlabel("Predictions")
@@ -79,8 +71,7 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=25)
     parser.add_argument("--dropout", type=float, default=0.2)
     parser.add_argument("--optimizer", type=str, default="rmsprop")
-    parser.add_argument("--learning-rate", type=float, default=0.001)
-    parser.add_argument("--momentum", type=float, default=0.0)
+    parser.add_argument("--learning_rate", type=float, default=0.001)
     return parser.parse_args()
 
 
@@ -119,3 +110,20 @@ if __name__ == "__main__":
             )
         }
     )
+
+    misclassified_idx = list(np.where(y_pred != y_true)[0])
+    columns = ["label", "audio", "spectrogram", "filename", "prediction"]
+    table_data = []
+    # Select ten misclassified examples at random
+    for idx in random.sample(misclassified_idx, 10):
+        table_data.append(
+            [
+                enc.categories_[0][y_true[idx]],
+                wandb.Audio(test_audio[idx], sample_rate=SAMPLE_RATE),
+                wandb.Image(test_specs[idx]),
+                test_fnames[idx][0],
+                enc.categories_[0][y_pred[idx]],
+            ]
+        )
+    table = wandb.Table(data=table_data, columns=columns)
+    run.log({"misclassifications": table})
