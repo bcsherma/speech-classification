@@ -1,16 +1,19 @@
 import os
+import random
 import re
 from glob import glob
-import random
 
 import numpy as np
-from scipy.io import wavfile
 from scipy import signal
+from scipy.io import wavfile
+from sklearn.model_selection import train_test_split
+
+import wandb
 
 SAMPLE_RATE = 16000
 LABELS = ["yes", "no", "up", "down", "left", "right", "on", "off", "stop", "go"]
 EXAMPLES_PER_LABEL = 1000
-DATA_PATH = os.path.join("./train/audio")
+DATA_PATH = os.path.join("./audio")
 
 
 def transform_wav(filename):
@@ -58,22 +61,81 @@ def organize_files_by_label(dir):
 
 
 if __name__ == "__main__":
+    config = {
+        "sample_rate": SAMPLE_RATE,
+        "examples_per_class": EXAMPLES_PER_LABEL,
+    }
+    run = wandb.init(job_type="dataset-preparation", config=config, save_code=True)
+    desc = """
+    Download the dataset from https://www.kaggle.com/c/tensorflow-speech-recognition-challenge
+    extract train/audio and place audio in the working directory that this code
+    is running within. This just saves the location of the original data.
+    """.strip()
+    original_data = wandb.Artifact("source-data", type="raw-data", description=desc)
+    original_data.add_reference(
+        "https://www.kaggle.com/c/tensorflow-speech-recognition-challenge"
+    )
+    run.use_artifact(original_data)
+
     label_to_files = organize_files_by_label(DATA_PATH)
-
-    labels_filenames = []
+    labels = []
+    filenames = []
     audio = []
-
     for l in label_to_files:
         for f in label_to_files[l]:
-            labels_filenames.append([l, f])
+            labels.append(l)
+            filenames.append(f)
             audio.append(transform_wav(os.path.join(DATA_PATH, l, f + ".wav")))
-
-    labels_filenames = np.array(labels_filenames)
+    labels = np.array(labels)
+    filenames = np.array(filenames)
     audio = np.array(audio)
-
     spectrograms = np.stack([log_spectrogram(clip) for clip in audio])
     spectrograms = spectrograms.reshape(tuple(list(spectrograms.shape) + [1]))
 
-    np.save("labels_and_fnames.npy", labels_filenames)
-    np.save("audio.npy", audio)
-    np.save("spectrograms.npy", spectrograms)
+    (
+        train_labels,
+        test_labels,
+        train_fnames,
+        test_fnames,
+        train_audio,
+        test_audio,
+        train_specs,
+        test_specs,
+    ) = train_test_split(
+        labels,
+        filenames,
+        audio,
+        spectrograms,
+        train_size=0.8,
+    )
+
+    np.savez(
+        "data/train.npz",
+        specs=train_specs,
+        labels=train_labels,
+        audio=train_audio,
+        files=train_fnames,
+    )
+    np.savez(
+        "data/test.npz",
+        specs=test_specs,
+        labels=test_labels,
+        audio=test_audio,
+        files=test_fnames,
+    )
+
+    train_art = wandb.Artifact(
+        "training-data",
+        type="dataset",
+        description="Training data stored as compressed npz.",
+    )
+    train_art.add_file("data/train.npz")
+    run.log_artifact(train_art)
+
+    test_art = wandb.Artifact(
+        "test-data",
+        type="dataset",
+        description="Test data stored as compressed npz.",
+    )
+    test_art.add_file("data/train.npz")
+    run.log_artifact(test_art)

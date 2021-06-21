@@ -1,4 +1,7 @@
-train/
+audio/
+data/
+models/
 .vscode/
 *.npy
 wandb/
+__pycache__/
