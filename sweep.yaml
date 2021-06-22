@@ -9,9 +9,9 @@ parameters:
   dense_units:
     values: [128, 256]
   dropout:
-    values: [0.2, 0.3, 0.4]
+    values: [0.3, 0.4]
   learning_rate:
-    values: [0.001, 0.01, 0.003]
+    values: [0.001, 0.003]
   epochs:
     value: 15
   optimizer:

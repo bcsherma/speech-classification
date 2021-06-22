@@ -57,6 +57,8 @@ def parse_args():
     parser.add_argument("--learning_rate", type=float, default=0.001)
     parser.add_argument("--filters", type=int, default=8)
     parser.add_argument("--dense_units", type=int, default=128)
+    parser.add_argument("--model_name", type=str, default="")
+    parser.add_argument("--save_plots", action="store_true")
     return parser.parse_args()
 
 
@@ -76,21 +78,22 @@ if __name__ == "__main__":
         validation_split=0.25,
         callbacks=[WandbCallback()],
     )
-    preds = model.predict(spectrograms)
-    run.log({"Confusion_Matrix": utils.make_confusion_matrix(preds, labels)})
-    run.log(
-        {
-            "Misclassifications": utils.misclassification_table(
-                preds, spectrograms, labels, audio
-            )
-        }
-    )
-    random_name = uuid.uuid4().hex[:8]
-    fname = f"models/{random_name}.keras"
-    model.save(fname)
-    model_artifact = wandb.Artifact(
-        name="convnet", type="model", metadata=dict(run.config)
-    )
-    model_artifact.add_file(fname)
-    run.log_artifact(model_artifact)
+    if config.save_plots:
+        preds = model.predict(spectrograms)
+        run.log({"Confusion_Matrix": utils.make_confusion_matrix(preds, labels)})
+        run.log(
+            {
+                "Misclassifications": utils.misclassification_table(
+                    preds, spectrograms, labels, audio
+                )
+            }
+        )
+    if config.model_name:
+        fname = f"models/{config.model_name}.keras"
+        model.save(fname)
+        model_artifact = wandb.Artifact(
+            name="convnet", type="model", metadata=dict(run.config)
+        )
+        model_artifact.add_file(fname)
+        run.log_artifact(model_artifact)
     run.finish()
