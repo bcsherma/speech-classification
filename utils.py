@@ -5,8 +5,7 @@ import wandb
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras.utils import to_categorical
-from sklearn.metrics import confusion_matrix
-import matplotlib.pyplot as plt
+
 
 LABELS = ["yes", "no", "up", "down", "left", "right", "on", "off", "stop", "go"]
 LB = LabelEncoder()
