@@ -42,16 +42,19 @@ def build_model(**kwargs):
         opt = optimizers.RMSprop(learning_rate=kwargs["learning_rate"])
     elif kwargs["optimizer"] == "adam":
         opt = optimizers.Adam(learning_rate=kwargs["learning_rate"])
-    model.compile(loss=losses.binary_crossentropy, metrics="accuracy", optimizer=opt)
+    model.compile(
+        loss=losses.categorical_crossentropy, metrics="accuracy", optimizer=opt
+    )
     return model
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--name", type=str, default=None)
     parser.add_argument("--dataset", type=str, default="training-data:latest")
     parser.add_argument("--epochs", type=int, default=15)
-    parser.add_argument("--dropout", type=float, default=0.4)
-    parser.add_argument("--optimizer", type=str, default="rmsprop")
+    parser.add_argument("--dropout", type=float, default=0.2)
+    parser.add_argument("--optimizer", type=str, default="adam")
     parser.add_argument("--learning_rate", type=float, default=0.001)
     parser.add_argument("--filters", type=int, default=8)
     parser.add_argument("--dense_units", type=int, default=128)
@@ -62,7 +65,9 @@ def parse_args():
 
 if __name__ == "__main__":
     config = parse_args()
-    run = wandb.init(config=config, job_type="training")
+    run = wandb.init(
+        name=config.name, config=config, job_type="training", save_code=True
+    )
     artifact = run.use_artifact(config.dataset)
     artifact.download(root="data/")
     labels, fnames, audio, spectrograms = utils.load_data("data/train.npz")
