@@ -90,7 +90,7 @@ if __name__ == "__main__":
         fname = f"models/{config.model_name}.keras"
         model.save(fname)
         model_artifact = wandb.Artifact(
-            name="convnet", type="model", metadata=dict(run.config)
+            name=config.model_name, type="model", metadata=dict(run.config)
         )
         model_artifact.add_file(fname)
         run.log_artifact(model_artifact)
