@@ -62,7 +62,7 @@ def parse_args():
 
 if __name__ == "__main__":
     config = parse_args()
-    run = wandb.init(config=config)
+    run = wandb.init(config=config, job_type="training")
     artifact = run.use_artifact(config.dataset)
     artifact.download(root="data/")
     labels, fnames, audio, spectrograms = utils.load_data("data/train.npz")
