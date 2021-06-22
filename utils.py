@@ -40,7 +40,7 @@ def misclassification_table(preds, spectrograms, labels, audio):
     table_data = []
     # Select ten misclassified examples at random
     # TODO: Show softmax output for each misclassified example in table
-    for idx in random.sample(misclassified_idx, 10):
+    for idx in random.sample(misclassified_idx, 32):
         table_data.append(
             [
                 LB.classes_[y_true[idx]],
