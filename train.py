@@ -1,8 +1,6 @@
 import argparse
-import uuid
 
 import utils
-import numpy as np
 
 from tensorflow.keras import Sequential, layers, losses, optimizers
 from wandb.keras import WandbCallback
