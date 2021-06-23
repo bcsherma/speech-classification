@@ -1,3 +1,5 @@
+# Creates a 60/20/20 train/validation/test split and saves the resulting
+# dataset as a wandb artifact along with the class distribution in each set.
 import os
 import random
 import re
