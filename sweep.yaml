@@ -14,7 +14,7 @@ parameters:
   learning_rate:
     value: 0.001
   epochs:
-    values: [20, 50]
+    value: 50
   optimizer:
     value: "adam"
   dataset:
