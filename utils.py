@@ -14,9 +14,18 @@ SAMPLE_RATE = 16000
 
 
 def load_data(fname):
-    """Loads compressed dataset."""
+    """Loads saved numpy dataset."""
     npz = np.load(fname)
     return npz["labels"], npz["files"], npz["audio"], npz["specs"]
+
+
+def save_data(data, fname):
+    """Saves data in uncompressed numpy format."""
+    labels = np.array([d[0] for d in data])
+    files = np.array([d[1] for d in data])
+    audio = np.array([d[2] for d in data])
+    specs = np.array([d[3] for d in data])
+    np.savez(fname, labels=labels, files=files, audio=audio, specs=specs)
 
 
 def one_hot_labels(y):

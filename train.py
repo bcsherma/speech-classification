@@ -51,7 +51,7 @@ def build_model(**kwargs):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", type=str, default=None)
-    parser.add_argument("--dataset", type=str, default="training-data:latest")
+    parser.add_argument("--dataset", type=str, required=True)
     parser.add_argument("--epochs", type=int, default=15)
     parser.add_argument("--dropout", type=float, default=0.2)
     parser.add_argument("--optimizer", type=str, default="adam")
@@ -60,34 +60,46 @@ def parse_args():
     parser.add_argument("--dense_units", type=int, default=128)
     parser.add_argument("--model_name", type=str, default="")
     parser.add_argument("--save_plots", action="store_true")
+    parser.add_argument("--test", action="store_true")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     config = parse_args()
+    config_dict = {
+        "dataset": config.dataset,
+        "dense_units": config.dense_units,
+        "epochs": config.epochs,
+        "dropout": config.dropout,
+        "optimizer": config.optimizer,
+        "filters": config.filters,
+        "learning_rate": config.learning_rate,
+    }
     run = wandb.init(
-        name=config.name, config=config, job_type="training", save_code=True
+        name=config.name, config=config_dict, job_type="training", save_code=True
     )
     artifact = run.use_artifact(config.dataset)
     artifact.download(root="data/")
     labels, fnames, audio, spectrograms = utils.load_data("data/train.npz")
     labels = utils.one_hot_labels(labels)
+    vlabels, vfnames, vaudio, vspectrograms = utils.load_data("data/validation.npz")
+    vlabels = utils.one_hot_labels(vlabels)
     model = build_model(**wandb.config)
     model.fit(
         spectrograms,
         labels,
         batch_size=32,
         epochs=run.config["epochs"],
-        validation_split=0.25,
+        validation_data=(vspectrograms, vlabels),
         callbacks=[WandbCallback()],
     )
     if config.save_plots:
-        preds = model.predict(spectrograms)
-        run.log({"Confusion_Matrix": utils.make_confusion_matrix(preds, labels)})
+        preds = model.predict(vspectrograms)
+        run.log({"Confusion_Matrix": utils.make_confusion_matrix(preds, vlabels)})
         run.log(
             {
                 "Misclassifications": utils.misclassification_table(
-                    preds, spectrograms, labels, audio
+                    preds, vspectrograms, vlabels, vaudio
                 )
             }
         )
@@ -99,4 +111,11 @@ if __name__ == "__main__":
         )
         model_artifact.add_file(fname)
         run.log_artifact(model_artifact)
+
+    if config.test:
+        labels, fnames, audio, spectrograms = utils.load_data("data/test.npz")
+        labels = utils.one_hot_labels(labels)
+        loss, acc = model.evaluate(spectrograms, labels)
+        run.log({"test_loss": loss, "test_accuracy": acc})
+
     run.finish()

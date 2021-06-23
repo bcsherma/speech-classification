@@ -8,12 +8,14 @@ parameters:
   filters:
     values: [8, 16]
   dense_units:
-    values: [128, 256]
+    values: [64, 128]
   dropout:
-    values: [0.0, 0.2, 0.3]
+    values: [0.2, 0.4]
   learning_rate:
     value: 0.001
   epochs:
-    value: 15
+    values: [20, 50]
   optimizer:
-    values: ["adam", "rmsprop"]
+    value: "adam"
+  dataset:
+    value: "first-dataset:latest"
