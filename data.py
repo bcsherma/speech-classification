@@ -65,7 +65,12 @@ if __name__ == "__main__":
         "sample_rate": SAMPLE_RATE,
         "examples_per_class": EXAMPLES_PER_LABEL,
     }
-    run = wandb.init(job_type="dataset-preparation", config=config, save_code=True)
+    run = wandb.init(
+        name="prepare-dataset",
+        job_type="dataset-preparation",
+        config=config,
+        save_code=True,
+    )
     desc = """
     Download the dataset from https://www.kaggle.com/c/tensorflow-speech-recognition-challenge
     extract train/audio and place audio in the working directory that this code
